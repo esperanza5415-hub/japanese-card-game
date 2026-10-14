@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>日文50音翻牌遊戲</title>
+<style>
+:root{--bg:#e9edf0;--ink:#1c2b3a;--sub:#5d6b78;--hira:#2c4a6e;--hira-t:#fff;--kata:#c8553d;--kata-t:#fff;--back:#1c2b3a;--ok:#3f7d5a;--line:#c9d1d8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181f;--ink:#e6ebef;--sub:#93a1ad;--hira:#6f95c2;--hira-t:#0d1822;--kata:#e0836d;--kata-t:#220e09;--back:#2a3947;--ok:#6fb28b;--line:#2d3b47}}
+:root[data-theme="dark"]{--bg:#11181f;--ink:#e6ebef;--sub:#93a1ad;--hira:#6f95c2;--hira-t:#0d1822;--kata:#e0836d;--kata-t:#220e09;--back:#2a3947;--ok:#6fb28b;--line:#2d3b47}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+main{max-width:520px;margin:0 auto;padding:20px 16px 32px}
+h1{font-family:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;font-size:30px;margin:0 0 4px;font-weight:700}
+.sub{color:var(--sub);font-size:14px;margin:0 0 16px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);padding:8px 12px;font-size:14px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.reset{margin-left:auto;border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer}
+.stats{display:flex;gap:16px;font-size:14px;color:var(--sub);margin-bottom:12px}
+.stats b{color:var(--ink);font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.card{aspect-ratio:3/4;perspective:600px;border:0;background:none;padding:0;cursor:pointer}
+.in{position:relative;width:100%;height:100%;transition:transform .35s;transform-style:preserve-3d}
+.card.up .in{transform:rotateY(180deg)}
+.f,.b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.b{background:radial-gradient(circle at 50% 50%,#bc002d 0 30%,#fff 30.5%);border:1px solid var(--line)}
+.f{transform:rotateY(180deg);font-family:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;font-size:38px;font-weight:700}
+.f small{font-family:system-ui,sans-serif;font-size:12px;font-weight:500;opacity:.85}
+.f.h{background:var(--hira);color:var(--hira-t)}
+.f.k{background:var(--kata);color:var(--kata-t)}
+.card.done .f{background:var(--ok);color:#fff}
+.card.done{cursor:default}
+.card:focus-visible{outline:3px solid var(--ink);outline-offset:2px;border-radius:8px}
+.snd{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+.snd[aria-pressed=false]{color:var(--sub);text-decoration:line-through}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--sub);margin-top:14px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.win{display:none;margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:10px}
+.win.show{display:block}
+.win p{margin:0 0 4px}
+@media (prefers-reduced-motion:reduce){.in{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>日文50音翻牌遊戲</h1>
+<p class="sub">找出發音相同的平假名與片假名。</p>
+<div class="bar">
+<div class="seg" id="lv" role="group" aria-label="難度">
+<button data-n="6" aria-pressed="true">6 對</button>
+<button data-n="8" aria-pressed="false">8 對</button>
+<button data-n="10" aria-pressed="false">10 對</button>
+</div>
+<button class="snd" id="sd" aria-pressed="true">🔊 發音</button>
+<button class="reset" id="rs">重新開始</button>
+</div>
+<div class="stats"><span>步數 <b id="mv">0</b></span><span>時間 <b id="tm">0:00</b></span><span>最佳 <b id="bs">–</b></span></div>
+<div class="grid" id="gd"></div>
+<div class="legend"><span><i class="dot" style="background:var(--hira)"></i>平假名</span><span><i class="dot" style="background:var(--kata)"></i>片假名</span><span><i class="dot" style="background:var(--ok)"></i>已配對</span></div>
+<div class="win" id="win"><p><b>全部配對完成！</b></p><p id="wt"></p></div>
+</main>
+<script>
+const H="あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん".split("");
+const K="アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン".split("");
+const R="a i u e o ka ki ku ke ko sa shi su se so ta chi tsu te to na ni nu ne no ha hi fu he ho ma mi mu me mo ya yu yo ra ri ru re ro wa wo n".split(" ");
+let n=6,first=null,lock=false,moves=0,pairs=0,t0=0,timer=null;
+const gd=document.getElementById("gd");
+function best(){try{return localStorage.getItem("kana-best-"+n)}catch(e){return null}}
+function setBest(v){try{localStorage.setItem("kana-best-"+n,v)}catch(e){}}
+function fmt(s){return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function start(){
+clearInterval(timer);timer=null;first=null;lock=false;moves=0;pairs=0;t0=0;
+mv.textContent=0;tm.textContent="0:00";win.classList.remove("show");
+const b=best();bs.textContent=b?b+" 步":"–";
+const idx=shuffle([...H.keys()]).slice(0,n);
+const cards=shuffle(idx.flatMap(i=>[{i,t:"h"},{i,t:"k"}]));
+gd.style.gridTemplateColumns="repeat("+(cards.length>12?4:4)+",1fr)";
+gd.innerHTML="";
+cards.forEach(c=>{
+const e=document.createElement("button");e.className="card";e.setAttribute("aria-label","未翻開的牌");
+e.innerHTML='<div class="in"><div class="b"></div><div class="f '+c.t+'">'+(c.t=="h"?H[c.i]:K[c.i])+'<small>'+R[c.i]+'</small></div></div>';
+e.onclick=()=>flip(e,c);gd.appendChild(e)});
+}
+let sound=true;
+function say(t){
+if(!sound||!window.speechSynthesis)return;
+try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="ja-JP";u.rate=0.8;
+const v=speechSynthesis.getVoices().find(x=>x.lang&&x.lang.replace("_","-").toLowerCase().startsWith("ja"));if(v)u.voice=v;
+speechSynthesis.speak(u)}catch(e){}
+}
+sd.onclick=()=>{sound=!sound;sd.setAttribute("aria-pressed",sound)};
+function flip(e,c){
+if(lock||e.classList.contains("up"))return;
+if(!timer){t0=Date.now();timer=setInterval(()=>tm.textContent=fmt(Math.floor((Date.now()-t0)/1000)),500)}
+e.classList.add("up");say(H[c.i]);
+if(!first){first={e,c};return}
+moves++;mv.textContent=moves;
+if(first.c.i===c.i&&first.c.t!==c.t){
+first.e.classList.add("done");e.classList.add("done");first=null;pairs++;
+if(pairs===n)finish();
+}else{
+lock=true;const a=first.e;first=null;
+setTimeout(()=>{a.classList.remove("up");e.classList.remove("up");lock=false},800)}
+}
+function finish(){
+clearInterval(timer);timer=null;
+const s=Math.floor((Date.now()-t0)/1000),b=best();
+let msg="用了 "+moves+" 步，花費 "+fmt(s)+"。";
+if(!b||moves<+b){setBest(moves);msg+=" 新紀錄！";bs.textContent=moves+" 步"}
+wt.textContent=msg;win.classList.add("show");
+}
+document.querySelectorAll("#lv button").forEach(b=>b.onclick=()=>{
+document.querySelectorAll("#lv button").forEach(x=>x.setAttribute("aria-pressed","false"));
+b.setAttribute("aria-pressed","true");n=+b.dataset.n;start()});
+rs.onclick=start;start();
+</script>
+</body>
+</html>
